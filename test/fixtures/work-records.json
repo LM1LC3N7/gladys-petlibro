@@ -1,0 +1,31 @@
+{
+  "AF0103A1B2C3D4E5F6": [
+    {
+      "workRecords": [
+        {
+          "id": 90003,
+          "type": "GRAIN_OUTPUT_SUCCESS",
+          "recordTime": 1792132200000,
+          "actualGrainNum": 4
+        }
+      ]
+    },
+    {
+      "workRecords": [
+        {
+          "id": 90002,
+          "type": "GRAIN_OUTPUT_SUCCESS",
+          "recordTime": 1792085400000,
+          "actualGrainNum": 4
+        },
+        {
+          "id": 90001,
+          "type": "GRAIN_OUTPUT_SUCCESS",
+          "recordTime": 1792045800000,
+          "actualGrainNum": 3
+        }
+      ]
+    }
+  ],
+  "AF0107B2C3D4E5F6A1": []
+}

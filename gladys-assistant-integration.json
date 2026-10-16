@@ -1,177 +1,354 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "PETLIBRO",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "PETLIBRO feeders and Dockstream fountains: food, meals, water, filter, pump, battery.",
+    "fr": "Distributeurs et fontaines Dockstream PETLIBRO : croquettes, repas, eau, filtre, pompe."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "version": "0.1.0",
+  "docker_image": "ghcr.io/lm1lc3n7/gladys-petlibro:0.1.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/LM1LC3N7/gladys-petlibro/main/cover.png",
+  "categories": ["appliances"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your PETLIBRO account",
+        "fr": "Votre compte PETLIBRO"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Brings your PETLIBRO devices into Gladys through the PETLIBRO cloud: food level, meals of the day, last meal, feeding plan and desiccant of the feeders (Granary, Air, One RFID, Space, Polar), water level, pump, filter and cleaning of the Dockstream fountains, batteries, plus a feed button, a scene action and scene triggers. PETLIBRO allows one session per account: use a second PETLIBRO account your devices are shared with (see the guide), otherwise the app and Gladys sign each other out. Then add the devices from the Discovery tab. Unofficial, not affiliated with PETLIBRO.",
+        "fr": "Amène vos appareils PETLIBRO dans Gladys par le cloud PETLIBRO : niveau de croquettes, repas du jour, dernier repas, programme de repas et déshydratant des distributeurs (Granary, Air, One RFID, Space, Polar), niveau d'eau, pompe, filtre et nettoyage des fontaines Dockstream, batteries, plus un bouton pour distribuer, une action et des déclencheurs de scène. PETLIBRO n'autorise qu'une session par compte : utilisez un second compte PETLIBRO avec lequel vos appareils sont partagés (voir le guide), sinon l'application et Gladys se déconnectent mutuellement. Ajoutez ensuite les appareils depuis l'onglet Découverte. Non officiel, sans lien avec PETLIBRO."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/LM1LC3N7/gladys-petlibro/blob/main/docs/fr.md",
+          "label": {
+            "en": "Guide (French)",
+            "fr": "Guide (français)"
+          }
+        },
+        {
+          "url": "https://github.com/LM1LC3N7/gladys-petlibro/blob/main/docs/en.md",
+          "label": {
+            "en": "Guide (English)",
+            "fr": "Guide (anglais)"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "email",
+      "type": "string",
+      "label": {
+        "en": "PETLIBRO e-mail",
+        "fr": "E-mail PETLIBRO"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "placeholder": {
+        "en": "gladys@example.com",
+        "fr": "gladys@exemple.fr"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "required": true
     },
     {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
-      "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
-      ]
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "PETLIBRO password",
+        "fr": "Mot de passe PETLIBRO"
+      },
+      "required": true
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "timezone",
+      "type": "string",
+      "label": {
+        "en": "Time zone of the devices",
+        "fr": "Fuseau horaire des appareils"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Leave empty to use the time zone of Gladys. Otherwise an IANA name such as Europe/Paris: PETLIBRO counts the meals of the day in it.",
+        "fr": "Laissez vide pour utiliser le fuseau horaire de Gladys. Sinon un nom IANA comme Europe/Paris : PETLIBRO y compte les repas du jour."
+      },
+      "placeholder": {
+        "en": "Europe/Paris",
+        "fr": "Europe/Paris"
       },
       "required": false,
-      "default": 300,
+      "default": ""
+    },
+    {
+      "key": "poll_interval",
+      "type": "number",
+      "label": {
+        "en": "Refresh interval (s)",
+        "fr": "Intervalle de rafraîchissement (s)"
+      },
+      "description": {
+        "en": "How often the devices are read, in seconds (60 to 900). Two or three requests per device.",
+        "fr": "Fréquence de lecture des appareils, en secondes (60 à 900). Deux ou trois requêtes par appareil."
+      },
+      "required": false,
+      "default": 120,
       "min": 60,
-      "max": 3600
+      "max": 900
+    },
+    {
+      "key": "feed_portions",
+      "type": "number",
+      "label": {
+        "en": "Portions of the Feed button",
+        "fr": "Portions du bouton Distribuer"
+      },
+      "description": {
+        "en": "How many portions the \"Feed now\" button of a feeder dispenses (1 to 10). The scene action takes any number.",
+        "fr": "Nombre de portions distribuées par le bouton « Distribuer maintenant » d'un distributeur (1 à 10). L'action de scène accepte n'importe quel nombre."
+      },
+      "required": false,
+      "default": 1,
+      "min": 1,
+      "max": 10
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the feature names",
+        "fr": "Langue des noms des fonctionnalités"
+      },
+      "description": {
+        "en": "Used for the names of the features and the alert messages.",
+        "fr": "Sert aux noms des fonctionnalités et aux messages d'alerte."
+      },
+      "required": false,
+      "default": "fr",
+      "options": [
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français"
+          }
+        },
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion"
+      },
+      "timeout_seconds": 90
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "meal_dispensed",
+      "label": {
+        "en": "Meal dispensed",
+        "fr": "Repas distribué"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A PETLIBRO feeder dispensed a meal, from its plan, the app or its button (not the ones asked by Gladys).",
+        "fr": "Un distributeur PETLIBRO a distribué un repas, depuis son programme, l'application ou son bouton (pas ceux demandés par Gladys)."
+      },
+      "fields": [
+        {
+          "key": "feeder",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Feeder",
+            "fr": "Distributeur"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "feeder_name",
+          "type": "string",
+          "label": {
+            "en": "Feeder name",
+            "fr": "Nom du distributeur"
+          }
+        },
+        {
+          "key": "portions",
+          "type": "number",
+          "label": {
+            "en": "Portions",
+            "fr": "Portions"
+          }
+        },
+        {
+          "key": "at",
+          "type": "string",
+          "label": {
+            "en": "Time (UTC)",
+            "fr": "Heure (UTC)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "alert_raised",
+      "label": {
+        "en": "PETLIBRO alert",
+        "fr": "Alerte PETLIBRO"
+      },
+      "description": {
+        "en": "A PETLIBRO device starts reporting a problem: food low, water low, battery low, desiccant or filter to replace, cleaning due or an error.",
+        "fr": "Un appareil PETLIBRO commence à signaler un problème : croquettes bientôt épuisées, manque d'eau, batterie faible, déshydratant ou filtre à remplacer, nettoyage à faire ou une erreur."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "Device",
+            "fr": "Appareil"
+          }
         },
         {
-          "key": "target",
+          "key": "alert",
           "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "label": {
+            "en": "Alert",
+            "fr": "Alerte"
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "low_food",
+              "label": {
+                "en": "Food running low",
+                "fr": "Croquettes bientôt épuisées"
+              }
+            },
+            {
+              "value": "low_water",
+              "label": {
+                "en": "Water running low",
+                "fr": "Manque d'eau"
+              }
+            },
+            {
+              "value": "low_battery",
+              "label": {
+                "en": "Battery low",
+                "fr": "Batterie faible"
+              }
+            },
+            {
+              "value": "desiccant_change",
+              "label": {
+                "en": "Desiccant to replace",
+                "fr": "Déshydratant à remplacer"
+              }
+            },
+            {
+              "value": "filter_change",
+              "label": {
+                "en": "Filter to replace",
+                "fr": "Filtre à remplacer"
+              }
+            },
+            {
+              "value": "cleaning_due",
+              "label": {
+                "en": "Cleaning due",
+                "fr": "Nettoyage à faire"
+              }
+            },
+            {
+              "value": "device_error",
+              "label": {
+                "en": "Device error",
+                "fr": "Erreur de l'appareil"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "device_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Device name",
+            "fr": "Nom de l'appareil"
+          }
+        },
+        {
+          "key": "message",
+          "type": "string",
+          "label": {
+            "en": "Alert message",
+            "fr": "Message de l'alerte"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "feed",
+      "label": {
+        "en": "Feed with a PETLIBRO feeder",
+        "fr": "Distribuer avec un distributeur PETLIBRO"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Dispenses dry food now, in portions as the PETLIBRO app counts them: 1 to 48 (1 to 16 on the Air Smart Feeder).",
+        "fr": "Distribue des croquettes maintenant, en portions comme les compte l'application PETLIBRO : 1 à 48 (1 à 16 sur l'Air Smart Feeder)."
+      },
+      "timeout_seconds": 30,
       "fields": [
         {
-          "key": "device",
+          "key": "feeder",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "label": {
+            "en": "Feeder",
+            "fr": "Distributeur"
+          },
           "required": true
+        },
+        {
+          "key": "portions",
+          "type": "number",
+          "label": {
+            "en": "Portions",
+            "fr": "Portions"
+          },
+          "required": true,
+          "default": 1,
+          "min": 1,
+          "max": 48
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "portions",
+          "type": "number",
+          "label": {
+            "en": "Portions asked",
+            "fr": "Portions demandées"
+          }
         }
       ]
-    }
-  ],
-  "widgets": [
-    {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
-      },
-      "icon": "activity",
-      "action_timeout_seconds": 15
     }
   ]
 }

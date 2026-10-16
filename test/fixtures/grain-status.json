@@ -1,0 +1,13 @@
+{
+  "AF0103A1B2C3D4E5F6": {
+    "todayFeedingTimes": 1,
+    "todayFeedingQuantity": 4,
+    "todayFeedingQuantities": [4],
+    "surplusGrain": true
+  },
+  "AF0107B2C3D4E5F6A1": {
+    "todayFeedingTimes": 0,
+    "todayFeedingQuantity": 0,
+    "todayFeedingQuantities": []
+  }
+}

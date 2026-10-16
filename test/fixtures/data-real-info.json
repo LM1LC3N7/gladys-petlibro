@@ -1,0 +1,17 @@
+{
+  "WF0116D4E5F6A1B2C3": {
+    "deviceSn": "WF0116D4E5F6A1B2C3",
+    "waterStopSwitch": false,
+    "lowWater": 300,
+    "radarSensingLevel": "NearTrigger",
+    "useWaterType": 0,
+    "powerType": 2,
+    "powerState": "USING",
+    "exceptionMessage": null
+  },
+  "WF0105E5F6A1B2C3D4": {
+    "deviceSn": "WF0105E5F6A1B2C3D4",
+    "useWaterType": 1,
+    "exceptionMessage": null
+  }
+}

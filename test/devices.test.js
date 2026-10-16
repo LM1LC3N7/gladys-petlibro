@@ -1,240 +1,273 @@
+// -----------------------------------------------------------------------------
+// The Gladys devices and states of a reading.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  DEVICE_FEATURE_CATEGORIES,
-  DEVICE_FEATURE_TYPES,
-  DEVICE_POLL_FREQUENCIES,
-  DEVICE_TRANSPORTS,
-} from '@gladysassistant/integration-sdk';
 import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
 import {
-  DEVICE_BLUEPRINTS,
-  buildDiscoveredDevices,
-  buildTransportEntries,
-  createPoller,
-  findBlueprintByDevice,
-  identifyDevice,
-} from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { normalizeConfig } from '../src/config.js';
+  COMMAND_ROLES,
+  FEATURES,
+  buildDevices,
+  datedStates,
+  deviceIds,
+  deviceStates,
+  errorText,
+  parseDeviceId,
+  parseFeatureId,
+  rolesOf,
+} from '../src/devices.js';
+import { FEATURE_NAMES } from '../src/i18n.js';
+import { readDevice, readList } from '../src/inventory.js';
+import {
+  AIR,
+  CORDLESS,
+  DOCKSTREAM,
+  GRANARY,
+  MEALS,
+  NOW,
+  POLAR,
+  dataRealInfo,
+  deviceList,
+  drinkWater,
+  grainStatus,
+  realInfo,
+  workRecords,
+} from './fixtures/petlibro.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
+/**
+ * The units Gladys accepts per category (DEVICE_FEATURE_UNITS_BY_CATEGORY of
+ * server/utils/constants.js, Gladys master 0027571e): a feature with another
+ * unit makes Gladys refuse the whole device list. `battery`/`charging` takes
+ * none (DEVICE_FEATURE_UNITS_BY_CATEGORY_AND_TYPE).
+ */
+const UNITS_BY_CATEGORY = {
+  battery: ['percent'],
+  'level-sensor': ['mm', 'cm', 'm', 'km', 'inch', 'feet', 'mile', 'percent'],
+  maintenance: ['percent'],
+  'temperature-sensor': ['celsius', 'fahrenheit', 'kelvin'],
+  'volume-sensor': ['liter', 'milliliter', 'cubicmeter'],
+  duration: [
+    'microseconds',
+    'milliseconds',
+    'seconds',
+    'minutes',
+    'hours',
+    'days',
+    'weeks',
+    'months',
+  ],
+};
 
-test('every blueprint exposes the required shape', () => {
-  for (const bp of DEVICE_BLUEPRINTS) {
-    assert.equal(typeof bp.key, 'string', 'key must be a string');
-    assert.equal(typeof bp.deviceExternalId, 'function', 'deviceExternalId must be a function');
-    assert.equal(typeof bp.buildDevice, 'function', 'buildDevice must be a function');
+function account() {
+  const { devices, skipped } = readList(deviceList());
+  const read = (device) =>
+    readDevice(device, {
+      real: realInfo()[device.serial],
+      data: dataRealInfo()[device.serial],
+      grain: grainStatus()[device.serial],
+      drink: drinkWater()[device.serial],
+      records: workRecords()[device.serial],
+    });
+  return { devices: devices.map(read), skipped };
+}
+
+const find = (devices, serial) => devices.find((d) => d.serial === serial);
+
+test('the roles follow what each device reports', () => {
+  const { devices } = account();
+  assert.deepEqual(rolesOf(find(devices, GRANARY)), [
+    'feed',
+    'feeding-plan',
+    'food',
+    'dispensed-today',
+    'feedings-today',
+    'last-meal',
+    'desiccant',
+    'desiccant-days',
+    'reset-desiccant',
+    'battery',
+    'battery-low',
+    'mains',
+    'online',
+  ]);
+  assert.deepEqual(rolesOf(find(devices, POLAR)), [
+    'food',
+    'temperature',
+    'cleaning',
+    'cleaning-days',
+    'reset-cleaning',
+    'battery',
+    'battery-low',
+    'online',
+  ]);
+  assert.deepEqual(rolesOf(find(devices, CORDLESS)), [
+    'pump',
+    'water',
+    'water-level',
+    'water-left',
+    'drunk-today',
+    'drinks-today',
+    'filter',
+    'filter-days',
+    'reset-filter',
+    'cleaning',
+    'cleaning-days',
+    'reset-cleaning',
+    'battery',
+    'battery-low',
+    'charging',
+    'mains',
+    'error',
+    'online',
+  ]);
+  const gen1 = rolesOf(find(devices, DOCKSTREAM));
+  assert.ok(!gen1.includes('pump') && !gen1.includes('battery') && !gen1.includes('water'));
+});
+
+test('every feature has a name in both languages and a unit Gladys accepts', async () => {
+  const gladys = createFakeGladys();
+  const { devices } = account();
+  const roles = new Map();
+  const published = buildDevices(gladys, { devices }, roles, 'fr');
+  for (const role of Object.keys(FEATURES)) {
+    assert.ok(FEATURE_NAMES[role]?.en && FEATURE_NAMES[role]?.fr, `${role} needs both names`);
   }
-});
-
-test('buildDiscoveredDevices returns one payload per blueprint', () => {
-  const devices = buildDiscoveredDevices(gladys, config);
-  assert.equal(devices.length, DEVICE_BLUEPRINTS.length);
-  for (const device of devices) {
-    assert.equal(typeof device.name, 'string');
-    assert.ok(device.external_id, 'each device has an external_id');
-    assert.ok(Array.isArray(device.features) && device.features.length > 0);
-  }
-});
-
-test('Gladys accepts the discovery payload', async () => {
-  // The SDK fake checks the payload like the host API does: external_id
-  // prefix, known category/type/unit, poll_frequency... A refusal is a 400
-  // for the WHOLE list, so no device would show up in the Discovery tab.
-  const fresh = createFakeGladys();
-  await fresh.publishDiscoveredDevices(buildDiscoveredDevices(fresh, config));
-  assert.equal(fresh.fake.discoveredDevices.length, DEVICE_BLUEPRINTS.length);
-});
-
-test('Gladys polls exactly the devices that implement onPoll', () => {
-  const frequencies = Object.values(DEVICE_POLL_FREQUENCIES);
-  for (const bp of DEVICE_BLUEPRINTS) {
-    const device = bp.buildDevice(gladys, config);
-    if (typeof bp.onPoll === 'function') {
-      assert.equal(device.should_poll, true, `${bp.key}: without should_poll, never polled`);
-      assert.ok(frequencies.includes(device.poll_frequency), `${bp.key}: invalid poll_frequency`);
-    } else {
-      assert.notEqual(device.should_poll, true, `${bp.key}: polled for nothing`);
+  for (const device of published) {
+    for (const feature of device.features) {
+      if (feature.unit !== undefined) {
+        assert.ok(
+          UNITS_BY_CATEGORY[feature.category]?.includes(feature.unit),
+          `${feature.external_id}: ${feature.unit} in ${feature.category}`,
+        );
+      }
+      if (feature.category === 'battery' && feature.type === 'charging') {
+        assert.equal(feature.unit, undefined);
+      }
     }
   }
+  // The SDK's fake checks them like Gladys does.
+  await gladys.connect();
+  await gladys.publishDiscoveredDevices(published);
+  assert.equal(gladys.fake.discoveredDevices.length, 5);
 });
 
-test('the poller reads a device at the refresh interval of the config', async (t) => {
-  t.mock.timers.enable({ apis: ['Date'] });
-  const fresh = createFakeGladys();
-  const pollDevice = createPoller();
-  const plug = {
-    external_id: DEVICE_BLUEPRINTS.find((bp) => bp.key === 'plug').deviceExternalId(fresh),
-  };
-  const everyFiveMinutes = normalizeConfig({ poll_frequency: 300 });
+test('the Gladys devices: names, ids, params, commands writable', () => {
+  const gladys = createFakeGladys();
+  const { devices } = account();
+  const [granary, air, , cordless, gen1] = buildDevices(gladys, { devices }, new Map(), 'en');
+  assert.equal(granary.name, 'Croquettes cuisine');
+  assert.equal(granary.external_id, `ext:test-integration:device:${GRANARY}`);
+  assert.deepEqual(granary.params, [
+    { name: 'model', value: 'Granary Smart Feeder' },
+    { name: 'product_code', value: 'PLAF103' },
+    { name: 'serial_number', value: GRANARY },
+    { name: 'firmware', value: '2.1.6' },
+  ]);
+  assert.deepEqual(air.params.at(-1), { name: 'shared', value: 'yes' });
+  assert.equal(gen1.name, `Dockstream Smart Fountain ${DOCKSTREAM}`);
+  const feature = (device, role) =>
+    device.features.find((f) => f.external_id === `${device.external_id}:${role}`);
+  assert.equal(feature(granary, 'feed').name, 'Feed now');
+  assert.equal(feature(granary, 'feed').read_only, false);
+  assert.equal(feature(granary, 'feeding-plan').read_only, false);
+  assert.equal(feature(cordless, 'pump').read_only, false);
+  assert.equal(feature(cordless, 'water-level').read_only, true);
+  for (const device of [granary, air, cordless, gen1]) {
+    for (const f of device.features) {
+      const { role } = parseFeatureId(f.external_id);
+      assert.equal(f.read_only, !COMMAND_ROLES.includes(role), f.external_id);
+    }
+  }
+  const french = buildDevices(gladys, { devices }, new Map(), 'fr');
+  assert.equal(feature(french[0], 'feed').name, 'Distribuer maintenant');
+});
 
-  assert.equal(await pollDevice(fresh, plug, everyFiveMinutes), true, 'the first poll reads');
-  for (let minute = 1; minute < 5; minute += 1) {
-    t.mock.timers.tick(DEVICE_POLL_FREQUENCIES.EVERY_MINUTES);
-    assert.equal(
-      await pollDevice(fresh, plug, everyFiveMinutes),
-      false,
-      `skipped at ${minute} min`,
+test('a role seen once stays: the device structure does not change with one reading', () => {
+  const gladys = createFakeGladys();
+  const { devices } = account();
+  const granary = find(devices, GRANARY);
+  const roles = new Map([[GRANARY, rolesOf(granary)]]);
+  const bare = { ...granary, desiccantDays: undefined, desiccantPercent: undefined };
+  const [device] = buildDevices(gladys, { devices: [bare] }, roles, 'en');
+  assert.ok(device.features.some((f) => f.external_id.endsWith(':desiccant-days')));
+});
+
+test('the states: levels, switches, percents, counts', () => {
+  const gladys = createFakeGladys();
+  const { devices } = account();
+  const values = (serial) =>
+    Object.fromEntries(
+      deviceStates(deviceIds(gladys, serial), find(devices, serial), 'fr').map((s) => [
+        parseFeatureId(s.device_feature_external_id).role,
+        s.state ?? s.text,
+      ]),
     );
-  }
-  // Gladys' tick may land a little early: the read is still due.
-  t.mock.timers.tick(DEVICE_POLL_FREQUENCIES.EVERY_MINUTES - 50);
-  assert.equal(await pollDevice(fresh, plug, everyFiveMinutes), true, 'read again at 5 min');
+  assert.deepEqual(values(GRANARY), {
+    online: 1,
+    battery: 87,
+    'battery-low': 0,
+    mains: 1,
+    food: 1,
+    'feeding-plan': 1,
+    'dispensed-today': 4,
+    'feedings-today': 1,
+    desiccant: 40,
+    'desiccant-days': 12,
+  });
+  assert.deepEqual(values(AIR).food, 0, 'low food = the Gladys level "low"');
+  assert.equal(values(AIR)['battery-low'], 1);
+  assert.deepEqual(values(CORDLESS), {
+    online: 1,
+    error: 'Aucune erreur',
+    battery: 72,
+    'battery-low': 0,
+    charging: 0,
+    mains: 0,
+    cleaning: 36,
+    'cleaning-days': 5,
+    pump: 1,
+    water: 1,
+    'water-level': 55,
+    'water-left': 820,
+    'drunk-today': 246,
+    'drinks-today': 11,
+    filter: 70,
+    'filter-days': 21,
+  });
+  assert.equal(values(POLAR).temperature, 6.5);
+  assert.equal(values(DOCKSTREAM).online, 0);
+  assert.equal(errorText('Rotor stuck', 'en'), 'Rotor stuck');
+  assert.equal(errorText('x'.repeat(500), 'en').length, 200);
 });
 
-test('the poller retries a failed read at the next poll', async (t) => {
-  t.mock.timers.enable({ apis: ['Date'] });
-  const pollDevice = createPoller();
-  const station = {
-    external_id: DEVICE_BLUEPRINTS.find((bp) => bp.key === 'weather-station').deviceExternalId(
-      gladys,
-    ),
+test('the last meal is dated with its time, and keyed', () => {
+  const gladys = createFakeGladys();
+  const { devices } = account();
+  const ids = deviceIds(gladys, GRANARY);
+  assert.deepEqual(datedStates(ids, find(devices, GRANARY), NOW), [
+    {
+      device_feature_external_id: ids.feature('last-meal'),
+      state: 4,
+      created_at: new Date(MEALS.today).toISOString(),
+      key: '90003',
+    },
+  ]);
+  assert.deepEqual(datedStates(ids, find(devices, AIR), NOW), []);
+  assert.deepEqual(datedStates(ids, find(devices, CORDLESS), NOW), []);
+  const future = {
+    ...find(devices, GRANARY),
+    meals: [{ key: 'k', at: NOW + 60_000, portions: 1 }],
   };
-  t.mock.method(globalThis, 'fetch', async () => {
-    throw new Error('network down');
+  assert.equal(datedStates(ids, future, NOW)[0].created_at, new Date(NOW).toISOString());
+});
+
+test('the external ids are parsed back', () => {
+  assert.deepEqual(parseFeatureId(`ext:x:device:${GRANARY}:feed`), {
+    serial: GRANARY,
+    role: 'feed',
   });
-  await assert.rejects(pollDevice(gladys, station, config), /network down/);
-
-  globalThis.fetch.mock.mockImplementation(async () => ({
-    ok: true,
-    json: async () => ({ current: { temperature_2m: 21.4, relative_humidity_2m: 55 } }),
-  }));
-  t.mock.timers.tick(DEVICE_POLL_FREQUENCIES.EVERY_MINUTES);
-  assert.equal(await pollDevice(gladys, station, config), true, 'not delayed by the failure');
-  assert.equal(gladys.fake.lastState(`${station.external_id}:temperature`), 21.4);
-});
-
-test('the poller ignores a device that has nothing to poll', async () => {
-  const pollDevice = createPoller();
-  const switchId = DEVICE_BLUEPRINTS.find((bp) => bp.key === 'switch').deviceExternalId(gladys);
-  assert.equal(await pollDevice(gladys, { external_id: switchId }, config), false);
-  assert.equal(await pollDevice(gladys, { external_id: 'does-not-exist' }, config), false);
-});
-
-test('an idle plug publishes its 0 W once, then only as a heartbeat', async (t) => {
-  t.mock.timers.enable({ apis: ['Date'] });
-  const fresh = createFakeGladys();
-  const plug = DEVICE_BLUEPRINTS.find((bp) => bp.key === 'plug');
-  await plug.onPoll(fresh, config);
-  await plug.onPoll(fresh, config);
-  assert.equal(fresh.fake.states.length, 1, 'an unchanged value is not sent again');
-  t.mock.timers.tick(30 * 60 * 1000);
-  await plug.onPoll(fresh, config);
-  assert.equal(fresh.fake.states.length, 2, 're-sent after 30 minutes');
-});
-
-test('device external_ids are unique across the catalog', () => {
-  const devices = buildDiscoveredDevices(gladys, config);
-  const ids = devices.map((d) => d.external_id);
-  assert.equal(new Set(ids).size, ids.length, 'no two devices may share an external_id');
-});
-
-test('findBlueprintByDevice routes an external_id back to its owner blueprint', () => {
-  for (const bp of DEVICE_BLUEPRINTS) {
-    const external_id = bp.deviceExternalId(gladys);
-    const found = findBlueprintByDevice(gladys, { external_id });
-    assert.equal(found, bp);
-  }
-});
-
-test('findBlueprintByDevice returns undefined for an unknown device', () => {
-  const found = findBlueprintByDevice(gladys, { external_id: 'does-not-exist' });
-  assert.equal(found, undefined);
-});
-
-test('manifest action keys are unique across blueprints', () => {
-  const keys = DEVICE_BLUEPRINTS.flatMap((bp) => Object.keys(bp.actions ?? {}));
-  assert.equal(new Set(keys).size, keys.length, 'no two blueprints may register the same action');
-});
-
-test('the camera declares a camera/image feature', () => {
-  const cameraBlueprint = DEVICE_BLUEPRINTS.find((bp) => bp.key === 'camera');
-  const device = cameraBlueprint.buildDevice(gladys, config);
-  const imageFeature = device.features.find((f) => f.category === DEVICE_FEATURE_CATEGORIES.CAMERA);
-  assert.ok(imageFeature, 'the camera must carry a camera feature');
-  assert.equal(imageFeature.type, DEVICE_FEATURE_TYPES.CAMERA.IMAGE);
-  assert.equal(imageFeature.read_only, true);
-});
-
-test('onGetImage resolves a base64 JPEG under the 150 KB limit', async () => {
-  const cameraBlueprint = DEVICE_BLUEPRINTS.find((bp) => bp.key === 'camera');
-  const image = await cameraBlueprint.onGetImage(gladys, {
-    device: { external_id: cameraBlueprint.deviceExternalId(gladys) },
-    config,
-  });
-  assert.match(image, /^image\/jpg;base64,/);
-  assert.ok(image.length <= 150 * 1024, 'the image must stay under 150 KB');
-});
-
-test('buildTransportEntries reports one valid entry per dual-channel device', () => {
-  const entries = buildTransportEntries(gladys, config);
-  assert.ok(entries.length > 0, 'the demo plug reports its transport');
-  const validValues = Object.values(DEVICE_TRANSPORTS);
-  for (const entry of entries) {
-    assert.ok(entry.external_id, 'each entry targets a device external_id');
-    assert.ok(validValues.includes(entry.transport), `invalid transport: ${entry.transport}`);
-  }
-});
-
-test('the demo plug honors the GLADYS_PREFER_LOCAL preference', () => {
-  const local = buildTransportEntries(gladys, normalizeConfig({ GLADYS_PREFER_LOCAL: true }));
-  const cloud = buildTransportEntries(gladys, normalizeConfig({ GLADYS_PREFER_LOCAL: false }));
-  const plugId = DEVICE_BLUEPRINTS.find((bp) => bp.key === 'plug').deviceExternalId(gladys);
-  assert.equal(local.find((e) => e.external_id === plugId).transport, DEVICE_TRANSPORTS.LOCAL);
-  assert.equal(cloud.find((e) => e.external_id === plugId).transport, DEVICE_TRANSPORTS.CLOUD);
-});
-
-test('nominal transport entries never carry a leftover degraded flag', () => {
-  const entries = buildTransportEntries(gladys, config);
-  for (const entry of entries) {
-    assert.equal(entry.degraded, undefined, 'nominal entries must clear the degraded state');
-  }
-});
-
-test('the plug reports a degraded cloud fallback when the LAN session is refused', () => {
-  const plugId = DEVICE_BLUEPRINTS.find((bp) => bp.key === 'plug').deviceExternalId(gladys);
-  simulateLanSession(false);
-  try {
-    const entries = buildTransportEntries(gladys, normalizeConfig({ GLADYS_PREFER_LOCAL: true }));
-    const entry = entries.find((e) => e.external_id === plugId);
-    assert.equal(entry.transport, DEVICE_TRANSPORTS.CLOUD, 'falls back to cloud');
-    assert.equal(entry.degraded, true, 'the fallback is flagged degraded');
-    assert.ok(entry.message.en, 'the reason carries at least the mandatory `en` text');
-    assert.ok(entry.message.en.length <= 200, 'tooltip messages are capped at 200 characters');
-  } finally {
-    simulateLanSession(true);
-  }
-});
-
-test('identifyDevice signals a device that implements identify', async () => {
-  const lightId = DEVICE_BLUEPRINTS.find((bp) => bp.key === 'light').deviceExternalId(gladys);
-  const message = await identifyDevice(gladys, lightId, config);
-  assert.match(message.en, /signalling/);
-  assert.ok(message.fr, 'the message is multi-language');
-});
-
-test('identifyDevice explains when the device has no way to signal itself', async () => {
-  const weatherId = DEVICE_BLUEPRINTS.find((bp) => bp.key === 'weather-station').deviceExternalId(
-    gladys,
-  );
-  const message = await identifyDevice(gladys, weatherId, config);
-  assert.match(message.en, /no way to signal/);
-});
-
-test('the test_weather action returns a multi-language message', async () => {
-  const realFetch = globalThis.fetch;
-  globalThis.fetch = async () => ({
-    ok: true,
-    json: async () => ({ current: { temperature_2m: 21.4, relative_humidity_2m: 55 } }),
-  });
-  try {
-    const weatherStation = DEVICE_BLUEPRINTS.find((bp) => bp.key === 'weather-station');
-    const message = await weatherStation.actions.test_weather(gladys, { fields: {}, config });
-    assert.match(message.en, /21\.4/);
-    assert.match(message.fr, /21\.4/);
-  } finally {
-    globalThis.fetch = realFetch;
-  }
+  assert.deepEqual(parseDeviceId(`ext:x:device:${GRANARY}`), { serial: GRANARY });
+  assert.equal(parseFeatureId('ext:x:device:'), undefined);
+  assert.equal(parseDeviceId(undefined), undefined);
 });

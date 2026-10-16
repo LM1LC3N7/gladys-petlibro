@@ -1,61 +1,150 @@
-# Demo Devices Template
+# PETLIBRO
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+This integration brings the connected **PETLIBRO** devices into Gladys: the
+**smart feeders** (Granary, Air, One RFID, Space, Polar wet food) and the
+**Dockstream water fountains**, through the PETLIBRO cloud (the one of the
+PETLIBRO app). Unofficial, not affiliated with PETLIBRO.
+
+> **Development version (0.1).** Built from the community clients of the
+> PETLIBRO API (the Home Assistant integration and homebridge-petlibro-2) and
+> tested with simulated answers, not with a real account yet. Feedback is
+> welcome on the GitHub repository.
+
+## Before you start: a second PETLIBRO account
+
+PETLIBRO allows **one session per account**: when Gladys signs in with the
+account of your phone, the PETLIBRO app is signed out, and the other way round.
+So, like the Home Assistant and Homebridge integrations recommend, give Gladys
+**its own PETLIBRO account, and share your devices with it**:
+
+1. Create a second PETLIBRO account with another e-mail address (in the app,
+   on another phone, or after signing out of your main account).
+2. Sign in to the PETLIBRO app with your **main** account, open each device
+   and share it with the e-mail of the second account (the share option of
+   the device settings; its wording depends on the app version). Accept the
+   share on the second account if the app asks.
+3. In Gladys, enter the e-mail and password of the **second** account.
+
+The shared devices then show up in Gladys, and the PETLIBRO app stays signed
+in on your phone. If you use the same account in both places anyway, the
+integration notices that its token keeps being refused right after its
+sign-in: it waits 15 minutes, tries once more, then stops and asks for a
+second account.
 
 ## What you get
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+One Gladys device per PETLIBRO device:
 
-## Configuration
+| Device                                                                      | In Gladys                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dry food feeder (Granary, Granary Camera, Air, One RFID, Space)             | "Feed now" button, "Feeding plan" switch, food level (low/normal; one per hopper on the two-hopper Granary), dispensed today (portions), meals today, last meal (portions), desiccant (% of its cycle, days left, "Desiccant replaced" button), battery, battery low, on mains power, online                                                                        |
+| Polar wet food feeder                                                       | food level, temperature, cleaning (% of its cycle, days left, "Cleaned" button), battery, battery low, online                                                                                                                                                                                                                                                       |
+| Dockstream fountain (Dockstream, Dockstream RFID, Dockstream 2, 2 Cordless) | "Pump" switch (Dockstream 2), water (low/normal against the low-water threshold set in the app, Dockstream 2), water level %, water left (mL), drunk today (mL), drinks today, filter (% of its cycle, days left, "Filter replaced" button), cleaning (% of its cycle, days left, "Cleaned" button), battery, charging and on mains power (Cordless), error, online |
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+- **Portions** are counted as the PETLIBRO app counts them (a twelfth of a cup
+  on most feeders; the Air's portions are half as big).
+- The **consumables** (desiccant, filter, cleaning) are shown in the Gladys
+  maintenance category: the percent of the cycle left (the cycle set in the
+  PETLIBRO app, 30 days for instance), next to the days left. After changing
+  the filter or the desiccant, or cleaning the fountain, press the matching
+  button: PETLIBRO restarts the countdown.
+- The last meal is dated with the time it was dispensed, not with the time of
+  the reading.
+- The badge of each device shows `cloud`; `unreachable` with an orange dot
+  when PETLIBRO reports the device offline, plain `unreachable` when PETLIBRO
+  does not answer.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+Not supported yet: the Luma litter box, the camera of the Granary Camera
+feeder, the plates and the lid of the Polar (its own manual feeding), editing
+the feeding plans, and the light, sound, child lock and display settings. The
+first Dockstream generation cannot stop its pump: it has no "Pump" switch.
 
-## Actions
+## Installation
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+1. Install the integration from the Gladys store.
+2. In the **Configuration** tab, enter the e-mail and the password of the
+   PETLIBRO account (preferably the second account, see above). Save.
+3. The status says "Connected to PETLIBRO: 3 devices".
+4. Open the **Discovery** tab and add the devices you want to follow. Their
+   values arrive as soon as they are added.
+
+The **Test the connection** button signs in again if needed, reads the account
+and lists its devices.
+
+## Buttons, switches and feeding from a scene
+
+- **Feed now** dispenses the number of portions of the "Portions of the Feed
+  button" option (1 by default, up to 10).
+- The **Feed with a PETLIBRO feeder** scene action dispenses any number of
+  portions: 1 to 48, 1 to 16 on the Air Smart Feeder. Another number fails
+  with the accepted range.
+- **Feeding plan** turns the feeding schedule of the feeder on or off;
+  **Pump** starts or stops the pump of a Dockstream 2. The switch shows the
+  value PETLIBRO reports at the next reading, 15 seconds after the command.
+- PETLIBRO refuses a command when the device is offline: the error message
+  shows in Gladys.
+
+A meal asked from Gladys does not fire the "Meal dispensed" trigger, so a
+scene cannot loop on it.
 
 ## Scenes
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+Two scene triggers:
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+- **Meal dispensed**: a feeder dispensed a meal, from its plan, the app or its
+  own button. Variables `feeder_name`, `portions` and `at` (UTC). The filter
+  can target a feeder.
+- **PETLIBRO alert**: a device starts reporting a problem: food running low,
+  water running low, battery low, desiccant to replace, filter to replace,
+  cleaning due (0 days left), or a device error. The filter can target a
+  device and some alerts; variables `device_name` and `message`. An alert
+  fires once when it starts, again only after it cleared.
 
-## Dashboard
+The first reading after a start fires nothing, and meals older than 15 minutes
+found after an outage are only recorded. The other values (water level %,
+battery…) work with the usual "Device state changed" trigger: for a first
+generation Dockstream, which reports no low-water threshold, use its water
+level.
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+## How often it reads
+
+Every 2 minutes by default (60 to 900 seconds): the live state of each
+device, plus the meals of the day of each dry food feeder and the pump and
+drinks of each fountain. The list of meals itself is read only when the count
+of the day changes, and at least every 30 minutes. The device list is read
+again every 30 minutes and on a Discovery scan. On errors the integration
+waits 1, 2, 5, 10 then 15 minutes. It signs in at most once every 15 minutes
+and keeps its token across restarts.
+
+## Options
+
+| Option                        | Default       | Purpose                                                                  |
+| ----------------------------- | ------------- | ------------------------------------------------------------------------ |
+| E-mail, password              | —             | a PETLIBRO account, preferably a second one your devices are shared with |
+| Time zone of the devices      | Gladys's zone | PETLIBRO counts the meals of the day in it (IANA name)                   |
+| Refresh interval (s)          | 120           | how often the devices are read                                           |
+| Portions of the Feed button   | 1             | what "Feed now" dispenses (1 to 10)                                      |
+| Language of the feature names | French        | names of the features and alert messages                                 |
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"PETLIBRO refused the sign-in"**: check the e-mail and the password in
+  the PETLIBRO app. The integration does not retry by itself: it waits for a
+  change or a click on **Test the connection**.
+- **"PETLIBRO knows no account with this e-mail"**: check the e-mail.
+- **"PETLIBRO refused the token right after the sign-in"**: the same account
+  is signed in to the PETLIBRO app. Use a second account your devices are
+  shared with.
+- **A device is `unreachable` with an orange dot**: PETLIBRO reports it
+  offline (Wi-Fi, power). Check it in the app.
+- **A model is missing**: the litter box and other devices are not supported
+  yet; the test button counts them. Open an issue on the GitHub repository.
+
+## Privacy
+
+The e-mail and password are stored by Gladys as a secret (never sent back to
+the browser). The integration sends the e-mail and an MD5 hash of the
+password to the PETLIBRO server (`api.us.petlibro.com`, the one the app uses
+in every country) to open a session, like the app does; it keeps the token in
+its `/data` folder. PETLIBRO, Granary and Dockstream are trademarks of their
+owner; this integration is not affiliated with PETLIBRO.

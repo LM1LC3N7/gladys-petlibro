@@ -1,0 +1,70 @@
+[
+  {
+    "deviceSn": "AF0103A1B2C3D4E5F6",
+    "productName": "Granary Smart Feeder",
+    "productIdentifier": "PLAF103",
+    "name": "Croquettes cuisine",
+    "mac": "AA:BB:CC:00:00:01",
+    "softwareVersion": "2.1.6",
+    "hardwareVersion": "1.0",
+    "online": true,
+    "deviceShareState": 3,
+    "shareId": null,
+    "enableFeedingPlan": true
+  },
+  {
+    "deviceSn": "AF0107B2C3D4E5F6A1",
+    "productName": "Air Smart Feeder",
+    "productIdentifier": "PLAF107",
+    "name": "Bureau",
+    "mac": "AA:BB:CC:00:00:02",
+    "softwareVersion": "1.0.9",
+    "hardwareVersion": "1.0",
+    "online": true,
+    "deviceShareState": 1,
+    "shareId": 4242,
+    "enableFeedingPlan": false
+  },
+  {
+    "deviceSn": "AF0203C3D4E5F6A1B2",
+    "productName": "Polar Wet Food Feeder",
+    "name": "Pâtée",
+    "mac": "AA:BB:CC:00:00:03",
+    "softwareVersion": "1.2.0",
+    "online": true,
+    "deviceShareState": 3,
+    "shareId": null
+  },
+  {
+    "deviceSn": "WF0116D4E5F6A1B2C3",
+    "productName": "Dockstream 2 Smart Cordless Fountain",
+    "productIdentifier": "PLWF116",
+    "name": "Fontaine salon",
+    "mac": "AA:BB:CC:00:00:04",
+    "softwareVersion": "1.4.2",
+    "hardwareVersion": "2.0",
+    "online": true,
+    "deviceShareState": 2,
+    "shareId": 4243
+  },
+  {
+    "deviceSn": "WF0105E5F6A1B2C3D4",
+    "productName": "Dockstream Smart Fountain",
+    "productIdentifier": "PLWF105",
+    "name": "",
+    "mac": "AA:BB:CC:00:00:05",
+    "softwareVersion": "1.1.0",
+    "hardwareVersion": "1.0",
+    "online": false,
+    "deviceShareState": 3,
+    "shareId": null
+  },
+  {
+    "deviceSn": "LB0001F6A1B2C3D4E5",
+    "productName": "Luma Smart Litter Box",
+    "productIdentifier": "PLLB001",
+    "name": "Litière",
+    "online": true,
+    "deviceShareState": 3
+  }
+]
