@@ -6,8 +6,8 @@
     "en": "PETLIBRO feeders and Dockstream fountains: food, meals, water, filter, pump, battery.",
     "fr": "Distributeurs et fontaines Dockstream PETLIBRO : croquettes, repas, eau, filtre, pompe."
   },
-  "version": "0.1.0",
-  "docker_image": "ghcr.io/lm1lc3n7/gladys-petlibro:0.1.0",
+  "version": "0.1.1",
+  "docker_image": "ghcr.io/lm1lc3n7/gladys-petlibro:0.1.1",
   "gladys_version": ">=5.1.0",
   "cover_image": "https://raw.githubusercontent.com/LM1LC3N7/gladys-petlibro/main/cover.png",
   "categories": ["appliances"],

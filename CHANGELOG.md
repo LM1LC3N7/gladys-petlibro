@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-16
+
 ### Added
 
 - PETLIBRO account (e-mail and password): the token is kept across restarts. A
@@ -36,4 +38,5 @@ the notes of the version's GitHub Release.
 - "Test the connection" button with the list of the devices.
 - Feature names and alert messages in French or English.
 
-[Unreleased]: https://github.com/LM1LC3N7/gladys-petlibro/commits/main
+[Unreleased]: https://github.com/LM1LC3N7/gladys-petlibro/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/LM1LC3N7/gladys-petlibro/releases/tag/v0.1.1
